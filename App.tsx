@@ -1,118 +1,105 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
-
-import React from 'react';
-import type {PropsWithChildren} from 'react';
+import React, {useCallback, useMemo} from 'react';
+import {Button, SafeAreaView, ScrollView} from 'react-native';
 import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
-
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
-
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
-
-function Section({children, title}: SectionProps): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-}
+  IosPaymentMethodDataInterface,
+  IosPKMerchantCapability,
+  PaymentMethodNameEnum,
+  SupportedNetworkEnum,
+  PaymentRequest,
+  PaymentComplete,
+  AndroidAllowedAuthMethodsEnum,
+  AndroidPaymentMethodDataInterface,
+  EnvironmentEnum,
+} from '@rnw-community/react-native-payments';
 
 function App(): React.JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  const iosPaymentMethodData: IosPaymentMethodDataInterface = useMemo(
+    () => ({
+      supportedMethods: PaymentMethodNameEnum.ApplePay,
+      data: {
+        countryCode: 'UA',
+        currencyCode: 'UAH',
+        merchantIdentifier: 'merchant.test',
+        merchantCapabilities: [IosPKMerchantCapability.PKMerchantCapability3DS],
+        supportedNetworks: [
+          SupportedNetworkEnum.Visa,
+          SupportedNetworkEnum.Mastercard,
+        ],
+      },
+    }),
+    [],
+  );
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
+  const androidPaymentMethodData: AndroidPaymentMethodDataInterface = useMemo(
+    () => ({
+      supportedMethods: PaymentMethodNameEnum.AndroidPay,
+      data: {
+        environment: __DEV__
+          ? EnvironmentEnum.TEST
+          : EnvironmentEnum.PRODUCTION,
+        currencyCode: 'UAH',
+        countryCode: 'UA',
+        supportedNetworks: [
+          SupportedNetworkEnum.Visa,
+          SupportedNetworkEnum.Mastercard,
+        ],
+        allowedAuthMethods: [
+          AndroidAllowedAuthMethodsEnum.PAN_ONLY,
+          AndroidAllowedAuthMethodsEnum.CRYPTOGRAM_3DS,
+        ],
+        gatewayConfig: {
+          gateway: '',
+          gatewayMerchantId: '',
+        },
+      },
+    }),
+    [],
+  );
+
+  const paymentDetails = useMemo(
+    () => ({
+      total: {
+        amount: {
+          currency: 'UAH',
+          value: '100',
+        },
+        label: 'LABEL',
+      },
+    }),
+    [],
+  );
+
+  const paymentRequest = useMemo(
+    () =>
+      new PaymentRequest(
+        [iosPaymentMethodData, androidPaymentMethodData],
+        paymentDetails,
+      ),
+    [androidPaymentMethodData, iosPaymentMethodData, paymentDetails],
+  );
+
+  const handlePay = useCallback(async () => {
+    try {
+      const isPaymentPossible = await paymentRequest.canMakePayment();
+      if (isPaymentPossible) {
+        const paymentResponse = await paymentRequest.show();
+
+        console.log(paymentResponse);
+
+        await paymentResponse.complete(PaymentComplete.SUCCESS);
+      }
+    } catch (err) {
+      console.error('Payment process error:', err);
+    }
+  }, [paymentRequest]);
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
+    <SafeAreaView>
+      <ScrollView contentInsetAdjustmentBehavior="automatic">
+        <Button title="Open Payment" onPress={handlePay} />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
 
 export default App;
