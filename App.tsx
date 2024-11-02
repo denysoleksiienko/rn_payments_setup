@@ -69,7 +69,7 @@ function App(): React.JSX.Element {
     [],
   );
 
-  const paymentRequest = useMemo(
+  const paymentRequest = useCallback(
     () =>
       new PaymentRequest(
         [iosPaymentMethodData, androidPaymentMethodData],
@@ -80,9 +80,9 @@ function App(): React.JSX.Element {
 
   const handlePay = useCallback(async () => {
     try {
-      const isPaymentPossible = await paymentRequest.canMakePayment();
+      const isPaymentPossible = await paymentRequest().canMakePayment();
       if (isPaymentPossible) {
-        const paymentResponse = await paymentRequest.show();
+        const paymentResponse = await paymentRequest().show();
 
         console.log(paymentResponse);
 
